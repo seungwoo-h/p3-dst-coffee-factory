@@ -355,8 +355,6 @@ class MultiWozDataset(Dataset):
         return self.data[idx]
 
     def collate_fn(self, batch):
-        for f in batch:
-            print(vars(f))
         input_ids = torch.tensor([f.input_id for f in batch], dtype=torch.long)
         input_mask = torch.tensor([f.input_mask for f in batch], dtype=torch.long)
         segment_ids = torch.tensor([f.segment_id for f in batch], dtype=torch.long)
