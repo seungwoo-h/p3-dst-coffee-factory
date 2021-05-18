@@ -141,7 +141,6 @@ def postprocessing(slot_meta, ops, last_dialog_state,
     return generated, last_dialog_state
 
 
-# 사용되지 않습니다.
 def make_slot_meta(ontology):
     meta = []
     change = {}
@@ -170,22 +169,22 @@ def prepare_dataset(origin_dials, tokenizer, slot_meta,
         dialog_history = []
         last_dialog_state = {}
         last_uttr = ""
+        turn_cnt = 0
         for ti in range(len(dial_dict["dialogue"])-1):
             if ti % 2 == 0:
+                if dial_dict["dialogue"][ti].get("state", None) != None and len(dial_dict["dialogue"][ti]['state']) == 0:
+                    continue
                 turn_domain = ""
-                turn_id = ti // 2
+                turn_id = turn_cnt
                 turn_uttr = (dial_dict["dialogue"][ti]["text"] + ' ; ' + dial_dict["dialogue"][ti+1]["text"]).strip()
                 dialog_history.append(last_uttr)
                 turn_dialog_state = {}
-                op_labels, generate_y, gold_state = None, None, None
+                op_labels, generate_y, gold_state = ['carryover'] * len(slot_meta), [], []
                 if dial_dict["dialogue"][ti].get("state", None) != None:
                     for state in dial_dict["dialogue"][ti]["state"]:
                         ss = state.split('-')
                         turn_dialog_state[f"{ss[0]}-{ss[1]}"] = ss[2]
                         turn_domain = ss[0]
-                    if turn_domain not in EXPERIMENT_DOMAINS:
-                        continue
-                    last_uttr = turn_uttr
 
                     op_labels, generate_y, gold_state = make_turn_label(slot_meta, last_dialog_state,
                                                                         turn_dialog_state,
@@ -204,6 +203,9 @@ def prepare_dataset(origin_dials, tokenizer, slot_meta,
                 instance.make_instance(tokenizer)
                 data.append(instance)
                 last_dialog_state = turn_dialog_state
+                turn_cnt += 1
+                last_uttr = turn_uttr    
+
     return data
 
 
@@ -279,11 +281,8 @@ class TrainingInstance:
         diag_1 = tokenizer.tokenize(self.dialog_history)
         diag_2 = tokenizer.tokenize(self.turn_utter)
         avail_length = avail_length_1 - len(diag_2)
-        if avail_length < 0:
-            print(avail_length)
-            print(self.turn_utter)
-
-        if len(diag_1) > avail_length:  # truncated
+        
+        if avail_length >= 0 and len(diag_1) > avail_length:  # truncated
             avail_length = len(diag_1) - avail_length
             diag_1 = diag_1[avail_length:]
 
@@ -323,7 +322,7 @@ class TrainingInstance:
         self.input_mask = input_mask
         self.domain_id = domain2id[self.turn_domain] if self.turn_domain != '' else -1
         self.op_ids = [self.op2id[a] for a in self.op_labels] if self.op_labels else None
-        self.generate_ids = [tokenizer.convert_tokens_to_ids(y) for y in self.generate_y] if self.generate_y else None
+        self.generate_ids = [tokenizer.convert_tokens_to_ids(y) for y in self.generate_y] if self.generate_y else [[]]#None
 
 
 class MultiWozDataset(Dataset):
@@ -362,6 +361,9 @@ class MultiWozDataset(Dataset):
         op_ids = torch.tensor([f.op_ids for f in batch], dtype=torch.long)
         domain_ids = torch.tensor([f.domain_id for f in batch], dtype=torch.long)
         gen_ids = [b.generate_ids for b in batch]
+        if None in gen_ids:
+            for b in batch:
+                print(vars(b))
         max_update = max([len(b) for b in gen_ids])
         max_value = max([len(b) for b in flatten(gen_ids)])
         for bid, b in enumerate(gen_ids):
