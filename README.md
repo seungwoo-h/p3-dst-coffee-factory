@@ -1,5 +1,7 @@
 # [Stage 3] Dialogue State Tracking
 
+[개인 wrap-up report](https://github.com/seungwoo-h/p3-dst-coffee-factory/blob/seungwoohong/README.md)
+
 **☕️  (1조) Coffee Factory - 민지원, 이애나, 정지훈, 진소정, 최병민, 홍승우**
 
 **Private 0.6926 - 최종 3위**
