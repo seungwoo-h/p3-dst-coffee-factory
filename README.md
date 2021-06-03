@@ -8,7 +8,7 @@
 
 *May, 2021 - Boostcamp AI Tech*
 
-리더보드 Public (0.7977) / **Private (0.6926)** 최종 3위
+리더보드 Public (0.7977) / **Private (0.6926)** 팀 최종 3위
 
 ---
 
